@@ -1211,7 +1211,9 @@
         throw new Error("Cloudinary chưa được cấu hình.");
       }
       if (!image?.deleteToken) {
-        throw new Error("Ảnh này không có delete token. Cloudinary chỉ cho xóa trực tiếp từ client trong thời gian ngắn sau khi upload.");
+        return {
+          skippedRemoteDelete: true
+        };
       }
 
       const endpoint = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudinaryConfig.cloudName)}/delete_by_token`;
@@ -1227,6 +1229,10 @@
       if (!response.ok) {
         throw new Error(payload?.error?.message || "Xóa ảnh trên Cloudinary thất bại.");
       }
+
+      return {
+        skippedRemoteDelete: false
+      };
     }
 
     function parseMoney(value) {
@@ -1658,7 +1664,7 @@
 
       try {
         setStatusText(uploadStatus, "Đang xóa ảnh...");
-        await deleteImageFromCloudinary(image);
+        const result = await deleteImageFromCloudinary(image);
         images.splice(imageIndex, 1);
         rows[detailRowIndex].details.images = images;
         rows[detailRowIndex].details.image = images[0]?.url || "";
@@ -1667,7 +1673,11 @@
         saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
           setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
         });
-        setStatusText(uploadStatus, "Đã xóa ảnh khỏi Cloudinary.", "success");
+        if (result?.skippedRemoteDelete) {
+          setStatusText(uploadStatus, "Đã gỡ ảnh khỏi giao diện và Firebase. Ảnh này không còn delete token để xóa tiếp trên Cloudinary.", "success");
+        } else {
+          setStatusText(uploadStatus, "Đã xóa ảnh khỏi Cloudinary và Firebase.", "success");
+        }
       } catch (error) {
         setStatusText(uploadStatus, error.message || "Xóa ảnh thất bại.", "error");
       }

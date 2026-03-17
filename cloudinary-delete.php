@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$cloudName = getenv('CLOUDINARY_CLOUD_NAME') ?: '';
-$apiKey = getenv('CLOUDINARY_API_KEY') ?: '';
-$apiSecret = getenv('CLOUDINARY_API_SECRET') ?: '';
+$cloudName = getenv('CLOUDINARY_CLOUD_NAME') ?: 'diaxqp7tz';
+$apiKey = getenv('CLOUDINARY_API_KEY') ?: '5569822446824443';
+$apiSecret = getenv('CLOUDINARY_API_SECRET') ?: 'bp7R-WSpKUXFUUTtVOzK_BrlACE';
 
 if ($cloudName === '' || $apiKey === '' || $apiSecret === '') {
     http_response_code(500);

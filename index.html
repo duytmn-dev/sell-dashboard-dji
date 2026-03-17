@@ -670,17 +670,39 @@
     }
 
     .preview-image {
-      width: 100%;
-      max-height: 260px;
-      object-fit: cover;
-      border-radius: 16px;
-      border: 1px solid var(--line);
+      position: absolute;
+      top: 50%;
+      left: 50%;
       display: none;
-      background: #0d1523;
+      max-width: none;
+      max-height: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      touch-action: none;
     }
 
     .preview-image.has-image {
       display: block;
+    }
+
+    .preview-frame {
+      position: relative;
+      width: 100%;
+      height: 420px;
+      max-height: 58vh;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #0d1523;
+      cursor: grab;
+    }
+
+    .preview-frame.is-dragging {
+      cursor: grabbing;
+    }
+
+    .preview-frame.no-drag {
+      cursor: default;
     }
 
     .gallery-grid {
@@ -788,6 +810,11 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(180px, 1fr));
         gap: 14px;
+      }
+
+      .preview-frame {
+        height: 320px;
+        max-height: 46vh;
       }
 
     }
@@ -899,7 +926,9 @@
 
         <section class="modal-preview-section">
           <div class="section-title">Preview</div>
-          <img id="imagePreview" class="preview-image" alt="Preview ảnh sản phẩm" />
+          <div id="previewFrame" class="preview-frame no-drag">
+            <img id="imagePreview" class="preview-image" alt="Preview ảnh sản phẩm" />
+          </div>
           <div id="imageGallery" class="gallery-grid"></div>
         </section>
       </div>
@@ -972,11 +1001,21 @@
     const detailImageFile = document.getElementById("detailImageFile");
     const uploadImageBtn = document.getElementById("uploadImageBtn");
     const uploadStatus = document.getElementById("uploadStatus");
+    const previewFrame = document.getElementById("previewFrame");
     const imagePreview = document.getElementById("imagePreview");
     const imageGallery = document.getElementById("imageGallery");
 
     let cloudinaryConfig = null;
     let toastTimer = null;
+    let previewPanX = 0;
+    let previewPanY = 0;
+    let previewMaxX = 0;
+    let previewMaxY = 0;
+    let previewDragging = false;
+    let previewStartX = 0;
+    let previewStartY = 0;
+    let previewOriginX = 0;
+    let previewOriginY = 0;
 
     function createRowId() {
       if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
@@ -1177,11 +1216,45 @@
       if (!url) {
         imagePreview.removeAttribute("src");
         imagePreview.classList.remove("has-image");
+        previewFrame.classList.add("no-drag");
+        imagePreview.style.width = "";
+        imagePreview.style.height = "";
+        imagePreview.style.transform = "translate(-50%, -50%)";
         return;
       }
 
       imagePreview.src = url;
       imagePreview.classList.add("has-image");
+      previewPanX = 0;
+      previewPanY = 0;
+    }
+
+    function clampPreviewPan() {
+      previewPanX = Math.max(-previewMaxX, Math.min(previewMaxX, previewPanX));
+      previewPanY = Math.max(-previewMaxY, Math.min(previewMaxY, previewPanY));
+    }
+
+    function applyPreviewTransform() {
+      imagePreview.style.transform = `translate(-50%, -50%) translate(${previewPanX}px, ${previewPanY}px)`;
+    }
+
+    function updatePreviewLayout() {
+      if (!imagePreview.src || !imagePreview.naturalWidth || !imagePreview.naturalHeight) return;
+
+      const frameWidth = previewFrame.clientWidth;
+      const frameHeight = previewFrame.clientHeight;
+      const scale = Math.max(frameWidth / imagePreview.naturalWidth, frameHeight / imagePreview.naturalHeight);
+      const renderWidth = imagePreview.naturalWidth * scale;
+      const renderHeight = imagePreview.naturalHeight * scale;
+
+      imagePreview.style.width = `${renderWidth}px`;
+      imagePreview.style.height = `${renderHeight}px`;
+
+      previewMaxX = Math.max(0, (renderWidth - frameWidth) / 2);
+      previewMaxY = Math.max(0, (renderHeight - frameHeight) / 2);
+      previewFrame.classList.toggle("no-drag", previewMaxX === 0 && previewMaxY === 0);
+      clampPreviewPan();
+      applyPreviewTransform();
     }
 
     function renderImageGallery(images = []) {
@@ -1749,6 +1822,46 @@
     productModal.addEventListener("click", (event) => {
       if (event.target === productModal) {
         closeDetailModal();
+      }
+    });
+
+    imagePreview.addEventListener("load", updatePreviewLayout);
+
+    previewFrame.addEventListener("pointerdown", (event) => {
+      if (previewMaxX === 0 && previewMaxY === 0) return;
+      previewDragging = true;
+      previewStartX = event.clientX;
+      previewStartY = event.clientY;
+      previewOriginX = previewPanX;
+      previewOriginY = previewPanY;
+      previewFrame.classList.add("is-dragging");
+      previewFrame.setPointerCapture(event.pointerId);
+    });
+
+    previewFrame.addEventListener("pointermove", (event) => {
+      if (!previewDragging) return;
+      previewPanX = previewOriginX + (event.clientX - previewStartX);
+      previewPanY = previewOriginY + (event.clientY - previewStartY);
+      clampPreviewPan();
+      applyPreviewTransform();
+    });
+
+    function stopPreviewDrag(event) {
+      if (!previewDragging) return;
+      previewDragging = false;
+      previewFrame.classList.remove("is-dragging");
+      if (event && previewFrame.hasPointerCapture?.(event.pointerId)) {
+        previewFrame.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    previewFrame.addEventListener("pointerup", stopPreviewDrag);
+    previewFrame.addEventListener("pointercancel", stopPreviewDrag);
+    previewFrame.addEventListener("pointerleave", stopPreviewDrag);
+
+    window.addEventListener("resize", () => {
+      if (imagePreview.classList.contains("has-image")) {
+        updatePreviewLayout();
       }
     });
 

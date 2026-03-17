@@ -285,6 +285,40 @@
       color: var(--accent);
     }
 
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%) translateY(18px);
+      z-index: 120;
+      min-width: 220px;
+      max-width: min(90vw, 420px);
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(118, 160, 216, 0.18);
+      background: rgba(9, 17, 30, 0.96);
+      color: var(--text);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      border-color: rgba(29, 215, 255, 0.24);
+      color: #baf6ff;
+    }
+
+    .toast.error {
+      border-color: rgba(255, 123, 114, 0.26);
+      color: #ffd1cd;
+    }
+
     .table-wrap {
       overflow: auto;
       border: 1px solid var(--line);
@@ -823,6 +857,8 @@
     <button type="button" data-action="add-product" class="primary">+ Sản phẩm</button>
   </div>
 
+  <div class="toast" id="saveToast" aria-live="polite"></div>
+
   <div class="modal" id="productModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
@@ -928,6 +964,7 @@
     const stickySaveDesktop = document.getElementById("stickySaveDesktop");
     const stickyActionsMobile = document.getElementById("stickyActionsMobile");
     const firestoreAlert = document.getElementById("firestoreAlert");
+    const saveToast = document.getElementById("saveToast");
     const productModal = document.getElementById("productModal");
     const modalProductName = document.getElementById("modalProductName");
     const detailSerial = document.getElementById("detailSerial");
@@ -939,6 +976,7 @@
     const imageGallery = document.getElementById("imageGallery");
 
     let cloudinaryConfig = null;
+    let toastTimer = null;
 
     function createRowId() {
       if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
@@ -987,6 +1025,25 @@
       if (mode) saveStatus.classList.add(mode);
     }
 
+    function showToast(message, mode = "success") {
+      if (!saveToast) return;
+      saveToast.textContent = message;
+      saveToast.classList.remove("success", "error", "show");
+      saveToast.classList.add(mode);
+
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+      }
+
+      requestAnimationFrame(() => {
+        saveToast.classList.add("show");
+      });
+
+      toastTimer = setTimeout(() => {
+        saveToast.classList.remove("show");
+      }, 2200);
+    }
+
     function setFirestoreAlert(message = "", visible = false) {
       if (!visible) {
         firestoreAlert.classList.remove("show");
@@ -1031,6 +1088,7 @@
 
       if (showDone) {
         setSaveStatus("Đã lưu dữ liệu lên Firebase.", "success");
+        showToast("Đã lưu dữ liệu lên Firebase.", "success");
       } else {
         setSaveStatus("Đã đồng bộ thay đổi lên Firebase.", "success");
       }
@@ -1066,6 +1124,9 @@
       await batch.commit();
       setFirestoreAlert("", false);
       setSaveStatus(showDone ? "Đã lưu toàn bộ dữ liệu lên Firebase." : "Đã đồng bộ toàn bộ dữ liệu.", "success");
+      if (showDone) {
+        showToast("Đã lưu toàn bộ dữ liệu lên Firebase.", "success");
+      }
     }
 
     async function loadRowsFromFirestore() {
@@ -1492,6 +1553,7 @@
     function triggerSaveAll() {
       saveAllRowsToFirestore(true).catch((error) => {
         setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+        showToast("Lưu dữ liệu thất bại.", "error");
       });
     }
 
@@ -1603,6 +1665,7 @@
       render();
       saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
         setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+        showToast("Lưu thông tin thất bại.", "error");
       });
       closeDetailModal();
     });

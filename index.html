@@ -9,25 +9,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0b1220;
-      --bg-accent: #121f2f;
-      --panel: rgba(16, 24, 38, 0.88);
-      --panel-strong: #111b2b;
-      --text: #edf2fb;
-      --muted: #93a0b7;
-      --line: rgba(148, 163, 184, 0.16);
-      --accent: #37c998;
-      --accent-2: #f1a45d;
+      --bg: #050a12;
+      --bg-accent: #0d1727;
+      --panel: rgba(9, 17, 30, 0.9);
+      --panel-strong: #0d1829;
+      --text: #f2f7ff;
+      --muted: #8ea4c4;
+      --line: rgba(118, 160, 216, 0.16);
+      --accent: #1dd7ff;
+      --accent-2: #ff9d3f;
       --danger: #ff7b72;
-      --warning: #f0c36b;
-      --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+      --warning: #ffd166;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
       --sold: #173928;
-      --stock: #4e3d10;
-      --hold: #172d54;
+      --stock: #493913;
+      --hold: #0f2d59;
       --cancel: #482229;
-      --input-bg: #162234;
-      --input-border: rgba(148, 163, 184, 0.2);
-      --header-bg: #1a2740;
+      --input-bg: #122036;
+      --input-border: rgba(118, 160, 216, 0.2);
+      --header-bg: #13233c;
     }
 
     * {
@@ -40,8 +40,9 @@
       font-family: "Be Vietnam Pro", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(241, 164, 93, 0.18), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(55, 201, 152, 0.16), transparent 35%),
+        radial-gradient(circle at 12% 10%, rgba(29, 215, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 88% 82%, rgba(255, 157, 63, 0.14), transparent 30%),
+        radial-gradient(circle at 78% 18%, rgba(93, 169, 255, 0.12), transparent 24%),
         linear-gradient(135deg, var(--bg), var(--bg-accent));
       padding: 24px;
     }
@@ -51,7 +52,7 @@
       margin: 0 auto;
       display: grid;
       gap: 18px;
-      padding-bottom: 190px;
+      padding-bottom: 0;
     }
 
     .hero,
@@ -80,7 +81,8 @@
       padding: 8px 12px;
       border-radius: 999px;
       color: var(--accent);
-      background: rgba(23, 98, 77, 0.08);
+      background: rgba(29, 215, 255, 0.08);
+      border: 1px solid rgba(29, 215, 255, 0.16);
       font-size: 0.84rem;
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -106,9 +108,9 @@
       padding: 18px;
       border-radius: 22px;
       background:
-        linear-gradient(150deg, rgba(30, 44, 67, 0.92), rgba(17, 27, 43, 0.98)),
-        linear-gradient(180deg, rgba(241, 164, 93, 0.12), transparent);
-      border: 1px solid rgba(241, 164, 93, 0.18);
+        linear-gradient(150deg, rgba(12, 24, 43, 0.96), rgba(8, 16, 29, 0.98)),
+        linear-gradient(180deg, rgba(29, 215, 255, 0.12), transparent);
+      border: 1px solid rgba(29, 215, 255, 0.16);
     }
 
     .hero-note .small {
@@ -170,6 +172,20 @@
       overflow: hidden;
     }
 
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
     .alert {
       display: none;
       gap: 10px;
@@ -193,23 +209,37 @@
 
     .toolbar {
       display: flex;
-      flex-direction: column;
       gap: 10px;
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 30;
-      padding: 12px;
-      border-radius: 18px;
-      background: rgba(11, 18, 32, 0.88);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(148, 163, 184, 0.12);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
-      max-width: calc(100vw - 24px);
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .toolbar button {
-      min-width: 150px;
+    .sticky-save-desktop {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 80;
+      border-radius: 999px;
+      padding: 11px 16px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      background: linear-gradient(120deg, var(--accent-2), #ff7b22);
+    }
+
+    .sticky-actions-mobile {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      z-index: 85;
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(24, 34, 51, 0.94);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
     }
 
     button {
@@ -227,13 +257,13 @@
     }
 
     .primary {
-      color: #fff;
-      background: linear-gradient(135deg, var(--accent), #0f4d3d);
+      color: #04141d;
+      background: linear-gradient(135deg, var(--accent), #7fe9ff);
     }
 
     .secondary {
       color: #fff;
-      background: linear-gradient(135deg, var(--accent-2), #8e4f28);
+      background: linear-gradient(135deg, var(--accent-2), #ff7b22);
     }
 
     .ghost {
@@ -243,8 +273,6 @@
     }
 
     .status-text {
-      max-width: 150px;
-      text-align: center;
       color: var(--muted);
       font-size: 0.82rem;
     }
@@ -684,6 +712,7 @@
     @media (max-width: 920px) {
       body {
         padding: 14px;
+        padding-bottom: 60px;
       }
 
       .hero {
@@ -697,18 +726,15 @@
       }
 
       .toolbar {
-        right: 10px;
-        bottom: 10px;
-        padding: 10px;
+        width: 100%;
       }
 
       .toolbar button {
-        min-width: 136px;
+        flex: 1 1 auto;
       }
 
       .status-text {
         margin-left: 0;
-        max-width: 136px;
         font-size: 0.78rem;
       }
 
@@ -716,11 +742,19 @@
         grid-template-columns: 1fr;
       }
 
+      .sticky-save-desktop {
+        display: none;
+      }
+
+      .sticky-actions-mobile {
+        display: grid;
+      }
+
       .summary {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(180px, 1fr));
-      gap: 14px;
-    }
+        display: grid;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        gap: 14px;
+      }
 
     }
   </style>
@@ -729,12 +763,12 @@
   <main class="app">
     <section class="hero">
       <div>
-        <div class="eyebrow">Sales Control</div>
-        <h1>Quản lý bán hàng</h1>
+        <div class="eyebrow">DJI Sales Control</div>
+        <h1>Quản lý bán hàng DJI</h1>
         <p class="sub">
-          Nhập sản phẩm, trạng thái, giá nhập và giá bán. Hệ thống tự tính tiền lãi theo từng dòng,
-          thống kê tổng vốn đã bỏ ra, doanh thu đã thu về từ hàng bán, vốn còn nằm trong hàng tồn
-          và số tiền còn âm sau khi trừ phần đã thu về.
+          Giao diện tập trung cho camera DJI, combo DJI và phụ kiện đi kèm. Theo dõi sản phẩm,
+          giá nhập, giá bán, serial, ảnh thực tế và lãi theo từng dòng trong một dashboard mang
+          tông công nghệ rõ hơn để bám sát việc bán DJI.
         </p>
       </div>
     </section>
@@ -746,6 +780,15 @@
         <div>
           <strong>Firestore chưa sẵn sàng.</strong><br />
           Kiểm tra đã tạo Firestore Database và publish rules cho collection `sales_products`.
+        </div>
+      </div>
+
+      <div class="title-row">
+        <div class="title">Sản phẩm</div>
+        <div class="toolbar">
+          <button class="primary" id="addRowBtn" type="button">Thêm sản phẩm</button>
+          <button class="secondary" id="saveBtnInline" type="button">Lưu dữ liệu</button>
+          <div class="status-text" id="saveStatus">Đang kết nối dữ liệu...</div>
         </div>
       </div>
 
@@ -773,10 +816,11 @@
     </section>
   </main>
 
-  <div class="toolbar" id="floatingToolbar">
-    <button class="primary" id="addRowBtn" type="button">Thêm sản phẩm</button>
-    <button class="secondary" id="saveBtn" type="button">Lưu dữ liệu</button>
-    <div class="status-text" id="saveStatus">Đang kết nối dữ liệu...</div>
+  <button id="stickySaveDesktop" class="sticky-save-desktop" type="button">Lưu dữ liệu</button>
+
+  <div class="sticky-actions-mobile" id="stickyActionsMobile">
+    <button type="button" data-action="save" class="secondary">Lưu</button>
+    <button type="button" data-action="add-product" class="primary">+ Sản phẩm</button>
   </div>
 
   <div class="modal" id="productModal" aria-hidden="true">
@@ -881,6 +925,8 @@
     const tbody = document.getElementById("tbody");
     const summaryCards = document.getElementById("summaryCards");
     const saveStatus = document.getElementById("saveStatus");
+    const stickySaveDesktop = document.getElementById("stickySaveDesktop");
+    const stickyActionsMobile = document.getElementById("stickyActionsMobile");
     const firestoreAlert = document.getElementById("firestoreAlert");
     const productModal = document.getElementById("productModal");
     const modalProductName = document.getElementById("modalProductName");
@@ -1437,10 +1483,28 @@
       });
     });
 
-    document.getElementById("saveBtn").addEventListener("click", () => {
+    function triggerSaveAll() {
       saveAllRowsToFirestore(true).catch((error) => {
         setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
       });
+    }
+
+    document.getElementById("saveBtnInline").addEventListener("click", triggerSaveAll);
+    stickySaveDesktop.addEventListener("click", triggerSaveAll);
+
+    stickyActionsMobile.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action || "";
+      if (action === "save") {
+        triggerSaveAll();
+        return;
+      }
+
+      if (action === "add-product") {
+        document.getElementById("addRowBtn").click();
+      }
     });
 
     tbody.addEventListener("input", (event) => {

@@ -6,6 +6,14 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
+set_exception_handler(static function (Throwable $e): void {
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Server exception',
+        'detail' => $e->getMessage(),
+    ]);
+});
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -67,25 +75,61 @@ $endpoint = sprintf(
     rawurlencode($resourceType !== '' ? $resourceType : 'image')
 );
 
-$ch = curl_init($endpoint);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => http_build_query($postFields, '', '&', PHP_QUERY_RFC3986),
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 20,
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/x-www-form-urlencoded',
-    ],
-]);
+$postBody = http_build_query($postFields, '', '&', PHP_QUERY_RFC3986);
+$response = false;
+$httpCode = 0;
+$transportError = '';
 
-$response = curl_exec($ch);
-$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+if (function_exists('curl_init')) {
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postBody,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/x-www-form-urlencoded',
+        ],
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $transportError = curl_error($ch);
+    curl_close($ch);
+} else {
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $postBody,
+            'timeout' => 20,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $response = @file_get_contents($endpoint, false, $context);
+    if (isset($http_response_header) && is_array($http_response_header)) {
+        foreach ($http_response_header as $headerLine) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})/', $headerLine, $matches)) {
+                $httpCode = (int) $matches[1];
+                break;
+            }
+        }
+    }
+
+    if ($response === false) {
+        $lastError = error_get_last();
+        $transportError = (string) ($lastError['message'] ?? 'file_get_contents failed');
+    }
+}
 
 if ($response === false) {
     http_response_code(502);
-    echo json_encode(['error' => 'Cloudinary request failed', 'detail' => $curlError]);
+    echo json_encode([
+        'error' => 'Cloudinary request failed',
+        'detail' => $transportError,
+        'transport' => function_exists('curl_init') ? 'curl' : 'stream',
+    ]);
     exit;
 }
 

@@ -397,55 +397,6 @@
       };
     }
 
-    async function deleteImageFromCloudinary(image) {
-      if (!cloudinaryConfig) {
-        throw new Error("Cloudinary chưa được cấu hình.");
-      }
-      if (image?.publicId) {
-        const response = await fetch("cloudinary-delete.php", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            publicId: image.publicId,
-            resourceType: "image"
-          })
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(payload?.error || "Xóa ảnh trên Cloudinary thất bại.");
-        }
-
-        return {
-          deletedByServer: true
-        };
-      }
-
-      if (image?.deleteToken) {
-        const endpoint = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudinaryConfig.cloudName)}/delete_by_token`;
-        const formData = new FormData();
-        formData.append("token", image.deleteToken);
-
-        const response = await fetch(endpoint, {
-          method: "POST",
-          body: formData
-        });
-
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.error?.message || "Xóa ảnh trên Cloudinary thất bại.");
-        }
-
-        return {
-          deletedByToken: true
-        };
-      }
-
-      throw new Error("Ảnh này không có publicId hoặc delete token để xóa trên Cloudinary.");
-    }
-
     function parseMoney(value) {
       if (typeof value === "number") return Number.isFinite(value) ? value : 0;
       if (!value) return 0;
@@ -876,8 +827,7 @@
       if (!Number.isInteger(imageIndex) || !image) return;
 
       try {
-        setStatusText(uploadStatus, "Đang xóa ảnh...");
-        await deleteImageFromCloudinary(image);
+        setStatusText(uploadStatus, "Đang gỡ ảnh...");
         images.splice(imageIndex, 1);
         rows[detailRowIndex].details.images = images;
         rows[detailRowIndex].details.image = images[0]?.url || "";
@@ -886,7 +836,7 @@
         saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
           setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
         });
-        setStatusText(uploadStatus, "Đã xóa ảnh khỏi Cloudinary và Firebase.", "success");
+        setStatusText(uploadStatus, "Đã gỡ ảnh khỏi giao diện và Firebase.", "success");
       } catch (error) {
         setStatusText(uploadStatus, error.message || "Xóa ảnh thất bại.", "error");
       }

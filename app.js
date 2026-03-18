@@ -56,12 +56,16 @@
     const firestoreAlert = document.getElementById("firestoreAlert");
     const saveToast = document.getElementById("saveToast");
     const productModal = document.getElementById("productModal");
+    const modalEditorSection = document.getElementById("modalEditorSection");
+    const detailToggleBtn = document.getElementById("detailToggleBtn");
     const modalProductName = document.getElementById("modalProductName");
     const detailSerial = document.getElementById("detailSerial");
     const detailNotes = document.getElementById("detailNotes");
     const detailImageFile = document.getElementById("detailImageFile");
     const uploadImageBtn = document.getElementById("uploadImageBtn");
     const uploadStatus = document.getElementById("uploadStatus");
+    const previewSerial = document.getElementById("previewSerial");
+    const previewNotes = document.getElementById("previewNotes");
     const previewFrame = document.getElementById("previewFrame");
     const imagePreview = document.getElementById("imagePreview");
     const imageGallery = document.getElementById("imageGallery");
@@ -77,6 +81,12 @@
     let previewStartY = 0;
     let previewOriginX = 0;
     let previewOriginY = 0;
+
+    function setEditorCollapsed(collapsed) {
+      if (!modalEditorSection || !detailToggleBtn) return;
+      modalEditorSection.classList.toggle("is-collapsed", collapsed);
+      detailToggleBtn.setAttribute("aria-expanded", String(!collapsed));
+    }
 
     function scrollToNewRow(selector) {
       requestAnimationFrame(() => {
@@ -230,6 +240,7 @@
         showToast("Đã lưu dữ liệu lên Firebase.", "success");
       } else {
         setSaveStatus("Đã đồng bộ thay đổi lên Firebase.", "success");
+        showToast("Đã tự động lưu thay đổi.", "success");
       }
     }
 
@@ -276,6 +287,8 @@
       setSaveStatus(showDone ? "Đã lưu toàn bộ dữ liệu lên Firebase." : "Đã đồng bộ toàn bộ dữ liệu.", "success");
       if (showDone) {
         showToast("Đã lưu toàn bộ dữ liệu lên Firebase.", "success");
+      } else {
+        showToast("Đã tự động lưu dữ liệu.", "success");
       }
     }
 
@@ -346,6 +359,15 @@
       imagePreview.classList.add("has-image");
       previewPanX = 0;
       previewPanY = 0;
+    }
+
+    function renderPreviewMeta(details = {}) {
+      if (previewSerial) {
+        previewSerial.textContent = details.serial?.trim() || "Chưa có số seri.";
+      }
+      if (previewNotes) {
+        previewNotes.textContent = details.notes?.trim() || "Chưa có ghi chú.";
+      }
     }
 
     function clampPreviewPan() {
@@ -497,6 +519,13 @@
       return "status-ton";
     }
 
+    function getProfitStatusClass(status) {
+      if (status === "da-ban") return "profit-status-da-ban";
+      if (status === "dang-giao") return "profit-status-dang-giao";
+      if (status === "huy") return "profit-status-huy";
+      return "profit-status-ton";
+    }
+
     function hasDetails(details) {
       if (!details) return false;
       return [
@@ -508,6 +537,14 @@
 
     function calcProfit(row) {
       return parseMoney(row.sell) - parseMoney(row.cost);
+    }
+
+    function formatProfitByStatus(row) {
+      const profit = calcProfit(row);
+      if (row.status === "da-ban" && profit > 0) {
+        return `+${formatMoney(profit)}`;
+      }
+      return formatMoney(profit);
     }
 
     function calcSummary() {
@@ -612,10 +649,11 @@
 
       tbody.innerHTML = rows.map((row, index) => {
         const profit = calcProfit(row);
-        const profitClass = profit >= 0 ? "profit-positive" : "profit-negative";
+        const profitClass = getProfitStatusClass(row.status);
+        const isSold = row.status === "da-ban";
 
         return `
-          <tr>
+          <tr class="${isSold ? "row-locked" : ""}">
             <td>${index + 1}</td>
             <td>
               <div class="product-cell">
@@ -625,6 +663,7 @@
                   data-key="product"
                   value="${escapeHtml(row.product)}"
                   placeholder="Tên sản phẩm"
+                  ${isSold ? "disabled" : ""}
                 />
                 <button
                   class="info-btn ${hasDetails(row.details) ? "has-data" : ""}"
@@ -635,7 +674,7 @@
               </div>
             </td>
             <td>
-              <select class="status-select ${getStatusClass(row.status)}" data-index="${index}" data-key="status">
+              <select class="status-select ${getStatusClass(row.status)}" data-index="${index}" data-key="status" ${isSold ? "disabled" : ""}>
                 <option value="ton" ${row.status === "ton" ? "selected" : ""}>Tồn kho</option>
                 <option value="dang-giao" ${row.status === "dang-giao" ? "selected" : ""}>Đang giao</option>
                 <option value="da-ban" ${row.status === "da-ban" ? "selected" : ""}>Đã bán</option>
@@ -651,6 +690,7 @@
                 data-money="1"
                 value="${parseMoney(row.cost) ? Number(row.cost).toLocaleString("vi-VN") : ""}"
                 placeholder="0"
+                ${isSold ? "disabled" : ""}
               />
             </td>
             <td>
@@ -662,9 +702,10 @@
                 data-money="1"
                 value="${parseMoney(row.sell) ? Number(row.sell).toLocaleString("vi-VN") : ""}"
                 placeholder="0"
+                ${isSold ? "disabled" : ""}
               />
             </td>
-            <td class="money-cell profit-cell ${profitClass}">${formatMoney(profit)}</td>
+            <td class="money-cell profit-cell ${profitClass}">${formatProfitByStatus(row)}</td>
             <td>
               <button class="delete-btn" type="button" data-delete="${index}">Xóa</button>
             </td>
@@ -723,9 +764,8 @@
       if (!profitCell) return;
 
       const profit = calcProfit(rowData);
-      profitCell.textContent = formatMoney(profit);
-      profitCell.classList.toggle("profit-positive", profit >= 0);
-      profitCell.classList.toggle("profit-negative", profit < 0);
+      profitCell.textContent = formatProfitByStatus(rowData);
+      profitCell.className = `money-cell profit-cell ${getProfitStatusClass(rowData.status)}`;
     }
 
     function render() {
@@ -744,11 +784,12 @@
       detailNotes.value = row.details?.notes || "";
       detailImageFile.value = "";
       updateImagePreview(row.details?.image || "");
+      renderPreviewMeta(row.details || {});
       renderImageGallery(row.details?.images || []);
       setStatusText(uploadStatus, row.details?.image ? "Đã có ảnh cho sản phẩm này." : "Chưa chọn ảnh.");
+      setEditorCollapsed(true);
       productModal.classList.add("open");
       productModal.setAttribute("aria-hidden", "false");
-      detailSerial.focus();
     }
 
     function closeDetailModal() {
@@ -795,26 +836,11 @@
       });
     });
 
-    function triggerSaveAll() {
-      saveAllRowsToFirestore(true).catch((error) => {
-        setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
-        showToast("Lưu dữ liệu thất bại.", "error");
-      });
-    }
-
-    document.getElementById("saveBtnInline").addEventListener("click", triggerSaveAll);
-    stickySaveDesktop.addEventListener("click", triggerSaveAll);
-
     stickyActionsMobile.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) return;
 
       const action = button.dataset.action || "";
-      if (action === "save") {
-        triggerSaveAll();
-        return;
-      }
-
       if (action === "add-product") {
         document.getElementById("addRowBtn").click();
         return;
@@ -969,6 +995,10 @@
 
     document.getElementById("closeModalBtn").addEventListener("click", closeDetailModal);
     document.getElementById("cancelModalBtn").addEventListener("click", closeDetailModal);
+    detailToggleBtn.addEventListener("click", () => {
+      const expanded = detailToggleBtn.getAttribute("aria-expanded") === "true";
+      setEditorCollapsed(expanded);
+    });
 
     document.getElementById("saveDetailBtn").addEventListener("click", () => {
       if (!Number.isInteger(detailRowIndex) || !rows[detailRowIndex]) return;
@@ -981,6 +1011,7 @@
       };
 
       render();
+      renderPreviewMeta(rows[detailRowIndex].details);
       saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
         setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
         showToast("Lưu thông tin thất bại.", "error");
@@ -1009,11 +1040,11 @@
         rows[detailRowIndex].details.image = rows[detailRowIndex].details.images[0]?.url || "";
         updateImagePreview(rows[detailRowIndex].details.image);
         renderImageGallery(rows[detailRowIndex].details.images);
+        detailImageFile.value = "";
+        setStatusText(uploadStatus, `Upload thành công ${uploadedImages.length} ảnh lên Cloudinary.`, "success");
         saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
           setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
         });
-        detailImageFile.value = "";
-        setStatusText(uploadStatus, `Upload thành công ${uploadedImages.length} ảnh lên Cloudinary.`, "success");
       } catch (error) {
         setStatusText(uploadStatus, error.message || "Upload ảnh thất bại.", "error");
       }
@@ -1050,10 +1081,10 @@
         rows[detailRowIndex].details.image = images[0]?.url || "";
         updateImagePreview(rows[detailRowIndex].details.image);
         renderImageGallery(images);
+        setStatusText(uploadStatus, "Đã gỡ ảnh khỏi giao diện và Firebase.", "success");
         saveRowToFirestore(rows[detailRowIndex], detailRowIndex, true).catch((error) => {
           setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
         });
-        setStatusText(uploadStatus, "Đã gỡ ảnh khỏi giao diện và Firebase.", "success");
       } catch (error) {
         setStatusText(uploadStatus, error.message || "Xóa ảnh thất bại.", "error");
       }

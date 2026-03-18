@@ -44,7 +44,7 @@
             <tr>
               <th style="width: 40px; text-align: center;">STT</th>
               <th style="width: 320px;">Sản phẩm</th>
-              <th style="width: 100px;">Trạng thái</th>
+              <th style="width: 120px;">Trạng thái</th>
               <th style="width: 120px;">Giá nhập</th>
               <th style="width: 120px;">Giá bán</th>
               <th style="width: 100px;">Tiền lãi</th>
@@ -90,13 +90,9 @@
   <div class="toolbar fixed-toolbar">
     <button class="primary" id="addRowBtn" type="button">Thêm sản phẩm</button>
     <button class="secondary" id="addAdRowBtn" type="button">Thêm chi phí QC</button>
-    <button class="secondary" id="saveBtnInline" type="button">Lưu dữ liệu</button>
   </div>
 
-  <button id="stickySaveDesktop" class="sticky-save-desktop" type="button">Lưu dữ liệu</button>
-
   <div class="sticky-actions-mobile" id="stickyActionsMobile">
-    <button type="button" data-action="save" class="secondary">Lưu</button>
     <button type="button" data-action="add-product" class="primary">+ Sản phẩm</button>
     <button type="button" data-action="add-ad" class="secondary">+ QC</button>
   </div>
@@ -114,35 +110,50 @@
       </div>
 
       <div class="modal-body">
-        <section class="modal-editor">
-          <div class="section-title">Nhập Thông Tin</div>
+        <section class="modal-editor is-collapsed" id="modalEditorSection">
+          <button class="section-toggle" id="detailToggleBtn" type="button" aria-expanded="false">
+            <span class="section-title">Nhập Thông Tin</span>
+            <span class="section-toggle-icon" aria-hidden="true">+</span>
+          </button>
 
-          <div class="field-grid">
-            <div class="field">
-              <label for="detailSerial">Số seri</label>
-              <input id="detailSerial" type="text" placeholder="Ví dụ: SN-001" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="detailNotes">Ghi chú</label>
-            <textarea id="detailNotes" placeholder="Ghi chú chi tiết cho sản phẩm..."></textarea>
-          </div>
-
-          <div class="field">
-            <label>Upload ảnh lên Cloudinary</label>
-            <div class="upload-box">
-              <div class="upload-actions">
-                <input id="detailImageFile" type="file" accept="image/*" multiple />
-                <button class="secondary" id="uploadImageBtn" type="button">Upload ảnh</button>
+          <div class="section-content" id="detailSectionContent">
+            <div class="field-grid">
+              <div class="field">
+                <label for="detailSerial">Số seri</label>
+                <input id="detailSerial" type="text" placeholder="Ví dụ: SN-001" />
               </div>
-              <div class="upload-status" id="uploadStatus">Chưa chọn ảnh.</div>
+            </div>
+
+            <div class="field">
+              <label for="detailNotes">Ghi chú</label>
+              <textarea id="detailNotes" placeholder="Ghi chú chi tiết cho sản phẩm..."></textarea>
+            </div>
+
+            <div class="field">
+              <label>Upload ảnh lên Cloudinary</label>
+              <div class="upload-box">
+                <div class="upload-actions">
+                  <input id="detailImageFile" type="file" accept="image/*" multiple />
+                  <button class="secondary" id="uploadImageBtn" type="button">Upload ảnh</button>
+                </div>
+                <div class="upload-status" id="uploadStatus">Chưa chọn ảnh.</div>
+              </div>
             </div>
           </div>
         </section>
 
         <section class="modal-preview-section">
           <div class="section-title">Preview</div>
+          <div class="preview-meta">
+            <div class="preview-meta-item">
+              <div class="preview-meta-label">Số seri</div>
+              <div class="preview-meta-value" id="previewSerial">Chưa có số seri.</div>
+            </div>
+            <div class="preview-meta-item">
+              <div class="preview-meta-label">Ghi chú</div>
+              <div class="preview-meta-value" id="previewNotes">Chưa có ghi chú.</div>
+            </div>
+          </div>
           <div id="previewFrame" class="preview-frame no-drag">
             <img id="imagePreview" class="preview-image" alt="Preview ảnh sản phẩm" />
           </div>

@@ -35,11 +35,7 @@
 
       <div class="title-row">
         <div class="title">Sản phẩm</div>
-        <div class="toolbar">
-          <button class="primary" id="addRowBtn" type="button">Thêm sản phẩm</button>
-          <button class="secondary" id="saveBtnInline" type="button">Lưu dữ liệu</button>
-          <div class="status-text" id="saveStatus">Đang kết nối dữ liệu...</div>
-        </div>
+        <div class="status-text" id="saveStatus">Đang kết nối dữ liệu...</div>
       </div>
 
       <div class="table-wrap">
@@ -60,17 +56,49 @@
       </div>
 
       <div class="legend">
-        Lãi theo dòng = Giá bán - Giá nhập. Chỉ thống kê doanh thu và lãi đã chốt cho các sản phẩm có trạng thái <strong>Đã bán</strong>.
-        Các trạng thái khác vẫn được tính vào vốn đã chi và vốn tồn.
+        Lãi theo dòng = Giá bán - Giá nhập. Chi phí quảng cáo được quản lý ở bảng riêng phía dưới và được cộng vào tổng chi, lãi ròng và âm còn lại.
+        Chỉ thống kê doanh thu và lãi cho các sản phẩm có trạng thái <strong>Đã bán</strong>.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="title-row">
+        <div class="title">Chi phí quảng cáo</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">STT</th>
+              <th style="width: 160px;">Ngày</th>
+              <th style="width: 220px;">Nội dung</th>
+              <th style="width: 160px;">Chi phí</th>
+              <th style="width: 60px;">Xóa</th>
+            </tr>
+          </thead>
+          <tbody id="adTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="legend">
+        Nhập chi phí quảng cáo theo ngày để hệ thống tính <strong>Tổng chi quảng cáo</strong>, <strong>Lãi ròng sau quảng cáo</strong> và <strong>Âm còn lại</strong>.
       </div>
     </section>
   </main>
+
+  <div class="toolbar fixed-toolbar">
+    <button class="primary" id="addRowBtn" type="button">Thêm sản phẩm</button>
+    <button class="secondary" id="addAdRowBtn" type="button">Thêm chi phí QC</button>
+    <button class="secondary" id="saveBtnInline" type="button">Lưu dữ liệu</button>
+  </div>
 
   <button id="stickySaveDesktop" class="sticky-save-desktop" type="button">Lưu dữ liệu</button>
 
   <div class="sticky-actions-mobile" id="stickyActionsMobile">
     <button type="button" data-action="save" class="secondary">Lưu</button>
     <button type="button" data-action="add-product" class="primary">+ Sản phẩm</button>
+    <button type="button" data-action="add-ad" class="secondary">+ QC</button>
   </div>
 
   <div class="toast" id="saveToast" aria-live="polite"></div>

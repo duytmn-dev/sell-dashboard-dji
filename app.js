@@ -26,18 +26,21 @@
     };
     const FIREBASE_APP_NAME = "sales-stock-manager-firestore";
     const FIRESTORE_COLLECTION = "sales_products";
+    const FIRESTORE_ADS_COLLECTION = "ads_daily";
 
     const defaultRows = [
-      { product: "DJI Osmo Action 6 Adventure combo", status: "da-ban", cost: 11704000, sell: 12000000 },
-      { product: "DJI Osmo Action 6 Adventure combo", status: "da-ban", cost: 11357500, sell: 12000000 },
-      { product: "Camera DJI Osmo Pocket 3 Creator Combo", status: "da-ban", cost: 10164513, sell: 11100000 },
-      { product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8352400, sell: 9000000 },
-      { product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8352400, sell: 9000000 },
-      { product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8382800, sell: 9000000 },
-      { product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8500000, sell: 9000000 }
+      { id: "seed-product-1", product: "DJI Osmo Action 6 Adventure combo", status: "da-ban", cost: 11704000, sell: 12000000 },
+      { id: "seed-product-2", product: "DJI Osmo Action 6 Adventure combo", status: "da-ban", cost: 11357500, sell: 12000000 },
+      { id: "seed-product-3", product: "Camera DJI Osmo Pocket 3 Creator Combo", status: "da-ban", cost: 10164513, sell: 11100000 },
+      { id: "seed-product-4", product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8352400, sell: 9000000 },
+      { id: "seed-product-5", product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8352400, sell: 9000000 },
+      { id: "seed-product-6", product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8382800, sell: 9000000 },
+      { id: "seed-product-7", product: "Camera Hành Động DJI Osmo Action 5 Pro", status: "da-ban", cost: 8500000, sell: 9000000 }
     ];
+    const defaultAdRows = [];
 
     let rows = [];
+    let adRows = [];
     let detailRowIndex = null;
     let activePreviewImageUrl = "";
     let firestoreDb = null;
@@ -45,6 +48,7 @@
     const saveTimers = new Map();
 
     const tbody = document.getElementById("tbody");
+    const adTbody = document.getElementById("adTbody");
     const summaryCards = document.getElementById("summaryCards");
     const saveStatus = document.getElementById("saveStatus");
     const stickySaveDesktop = document.getElementById("stickySaveDesktop");
@@ -73,6 +77,26 @@
     let previewStartY = 0;
     let previewOriginX = 0;
     let previewOriginY = 0;
+
+    function scrollToNewRow(selector) {
+      requestAnimationFrame(() => {
+        const target = document.querySelector(selector);
+        if (!target) return;
+
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest"
+        });
+
+        const focusTarget = target.matches("input, select, textarea, button")
+          ? target
+          : target.querySelector("input, select, textarea, button");
+        if (focusTarget instanceof HTMLElement) {
+          focusTarget.focus({ preventScroll: true });
+        }
+      });
+    }
 
     function createRowId() {
       if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
@@ -106,6 +130,16 @@
               : [],
           notes: row.details?.notes || ""
         }
+      };
+    }
+
+    function normalizeAdRow(row) {
+      return {
+        id: row.id || createRowId(),
+        sort_order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
+        ad_date: row.ad_date || "",
+        note: row.note || "",
+        cost: parseMoney(row.cost)
       };
     }
 
@@ -170,6 +204,15 @@
       };
     }
 
+    function toFirestoreAdRow(row, index) {
+      return {
+        sort_order: index,
+        ad_date: row.ad_date || "",
+        note: row.note || "",
+        cost: parseMoney(row.cost)
+      };
+    }
+
     function clearSaveTimer(rowId) {
       if (!saveTimers.has(rowId)) return;
       clearTimeout(saveTimers.get(rowId));
@@ -210,12 +253,23 @@
       setFirestoreAlert("", false);
     }
 
+    async function deleteAdRowFromFirestore(rowId) {
+      if (!firestoreReady || !firestoreDb || !rowId) return;
+      clearSaveTimer(rowId);
+      await deleteDoc(doc(firestoreDb, FIRESTORE_ADS_COLLECTION, rowId));
+      setFirestoreAlert("", false);
+    }
+
     async function saveAllRowsToFirestore(showDone = false) {
       if (!firestoreReady || !firestoreDb) return;
       rows = rows.map((row, index) => ({ ...row, sort_order: index }));
+      adRows = adRows.map((row, index) => ({ ...row, sort_order: index }));
       const batch = writeBatch(firestoreDb);
       rows.forEach((row, index) => {
         batch.set(doc(firestoreDb, FIRESTORE_COLLECTION, row.id), toFirestoreRow(row, index), { merge: true });
+      });
+      adRows.forEach((row, index) => {
+        batch.set(doc(firestoreDb, FIRESTORE_ADS_COLLECTION, row.id), toFirestoreAdRow(row, index), { merge: true });
       });
       await batch.commit();
       setFirestoreAlert("", false);
@@ -228,6 +282,7 @@
     async function loadRowsFromFirestore() {
       if (!firestoreReady || !firestoreDb) {
         rows = structuredClone(defaultRows).map(normalizeRow).map((row, index) => ({ ...row, sort_order: index }));
+        adRows = structuredClone(defaultAdRows).map(normalizeAdRow).map((row, index) => ({ ...row, sort_order: index }));
         render();
         setSaveStatus("Thiếu cấu hình Firebase. Hãy điền firebaseConfig trong mã nguồn.", "error");
         setFirestoreAlert("Thiếu firebaseConfig trong mã nguồn.", true);
@@ -236,19 +291,26 @@
 
       setSaveStatus("Đang tải dữ liệu từ Firebase...");
       try {
-        const snapshot = await getDocs(query(collection(firestoreDb, FIRESTORE_COLLECTION), orderBy("sort_order", "asc")));
-        const data = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+        const [productsSnapshot, adsSnapshot] = await Promise.all([
+          getDocs(query(collection(firestoreDb, FIRESTORE_COLLECTION), orderBy("sort_order", "asc"))),
+          getDocs(query(collection(firestoreDb, FIRESTORE_ADS_COLLECTION), orderBy("sort_order", "asc")))
+        ]);
+        const data = productsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+        const adsData = adsSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
         if (!data.length) {
           rows = structuredClone(defaultRows).map(normalizeRow).map((row, index) => ({ ...row, sort_order: index }));
+          adRows = structuredClone(defaultAdRows).map(normalizeAdRow).map((row, index) => ({ ...row, sort_order: index }));
           await saveAllRowsToFirestore(true).catch(() => {});
         } else {
           rows = data.map(normalizeRow).sort((a, b) => a.sort_order - b.sort_order);
+          adRows = adsData.map(normalizeAdRow).sort((a, b) => a.sort_order - b.sort_order);
         }
         render();
         setFirestoreAlert("", false);
         setSaveStatus("Đã tải dữ liệu từ Firebase.", "success");
       } catch (error) {
         rows = structuredClone(defaultRows).map(normalizeRow).map((row, index) => ({ ...row, sort_order: index }));
+        adRows = structuredClone(defaultAdRows).map(normalizeAdRow).map((row, index) => ({ ...row, sort_order: index }));
         render();
         setSaveStatus("Tải dữ liệu Firebase thất bại: " + error.message, "error");
         setFirestoreAlert("Không đọc được dữ liệu từ Firestore. Hãy kiểm tra đã tạo Firestore Database và publish rules cho collection `sales_products`.", true);
@@ -400,7 +462,12 @@
     function parseMoney(value) {
       if (typeof value === "number") return Number.isFinite(value) ? value : 0;
       if (!value) return 0;
-      return Number(String(value).replace(/[^\d-]/g, "")) || 0;
+      const normalized = String(value)
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/[.,](?=\d{3}(?:\D|$))/g, "")
+        .replace(/[^\d-]/g, "");
+      return Number(normalized) || 0;
     }
 
     function formatMoney(value) {
@@ -467,12 +534,16 @@
         }
       });
 
-      const remainingDeficitRaw = totalImportSpend - totalRevenueSold;
+      const totalAdCost = adRows.reduce((sum, row) => sum + parseMoney(row.cost), 0);
+      const totalNetProfitSold = totalProfitSold - totalAdCost;
+      const remainingDeficitRaw = totalImportSpend + totalAdCost - totalRevenueSold;
       const remainingDeficit = Math.max(remainingDeficitRaw, 0);
 
       return {
         totalRevenueSold,
         totalProfitSold,
+        totalAdCost,
+        totalNetProfitSold,
         totalStockCapital,
         totalImportSpend,
         remainingDeficit,
@@ -499,6 +570,17 @@
           value: formatMoney(summary.totalProfitSold),
           hint: "Chỉ tính cho trạng thái Đã bán.",
           className: summary.totalProfitSold >= 0 ? "good" : "bad"
+        },
+        {
+          label: "Tổng chi quảng cáo",
+          value: formatMoney(summary.totalAdCost),
+          hint: "Cộng tất cả chi phí QC theo ngày."
+        },
+        {
+          label: "Lãi ròng sau quảng cáo",
+          value: formatMoney(summary.totalNetProfitSold),
+          hint: "Đã trừ giá nhập và chi phí QC.",
+          className: summary.totalNetProfitSold >= 0 ? "good" : "bad"
         },
         {
           label: "Vốn hàng tồn",
@@ -591,6 +673,50 @@
       }).join("");
     }
 
+    function renderAdTable() {
+      if (!adRows.length) {
+        adTbody.innerHTML = '<tr><td class="empty" colspan="5">Chưa có chi phí quảng cáo nào.</td></tr>';
+        return;
+      }
+
+      adTbody.innerHTML = adRows.map((row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>
+            <input
+              type="date"
+              data-ad-index="${index}"
+              data-ad-key="ad_date"
+              value="${escapeHtml(row.ad_date || "")}"
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              data-ad-index="${index}"
+              data-ad-key="note"
+              value="${escapeHtml(row.note || "")}"
+              placeholder="Facebook ads, TikTok ads..."
+            />
+          </td>
+          <td>
+            <input
+              type="text"
+              inputmode="numeric"
+              data-ad-index="${index}"
+              data-ad-key="cost"
+              data-money="1"
+              value="${parseMoney(row.cost) ? Number(row.cost).toLocaleString("vi-VN") : ""}"
+              placeholder="0"
+            />
+          </td>
+          <td>
+            <button class="delete-btn" type="button" data-ad-delete="${index}">Xóa</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
     function updateComputedRow(rowElement, rowData) {
       if (!rowElement) return;
       const profitCell = rowElement.querySelector(".profit-cell");
@@ -604,6 +730,7 @@
 
     function render() {
       renderTable();
+      renderAdTable();
       renderSummary();
     }
 
@@ -646,8 +773,25 @@
       nextRow.sort_order = rows.length;
       rows.push(nextRow);
       render();
+      scrollToNewRow(`#tbody tr:last-child input[data-key="product"]`);
       saveRowToFirestore(nextRow, rows.length - 1, true).catch((error) => {
         setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+      });
+    });
+
+    document.getElementById("addAdRowBtn").addEventListener("click", () => {
+      const nextRow = normalizeAdRow({
+        ad_date: "",
+        note: "",
+        cost: 0
+      });
+      nextRow.sort_order = adRows.length;
+      adRows.push(nextRow);
+      render();
+      scrollToNewRow(`#adTbody tr:last-child input[data-ad-key="ad_date"]`);
+      saveAllRowsToFirestore(true).catch((error) => {
+        setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+        showToast("Lưu dữ liệu thất bại.", "error");
       });
     });
 
@@ -673,6 +817,11 @@
 
       if (action === "add-product") {
         document.getElementById("addRowBtn").click();
+        return;
+      }
+
+      if (action === "add-ad") {
+        document.getElementById("addAdRowBtn").click();
       }
     });
 
@@ -742,6 +891,74 @@
       rows.splice(index, 1);
       render();
       deleteRowFromFirestore(rowId).then(() => {
+        saveAllRowsToFirestore().catch((error) => {
+          setSaveStatus("Đồng bộ Firebase thất bại: " + error.message, "error");
+        });
+      }).catch((error) => {
+        setSaveStatus("Xóa Firebase thất bại: " + error.message, "error");
+      });
+    });
+
+    adTbody.addEventListener("input", (event) => {
+      const target = event.target;
+      const index = Number(target.dataset.adIndex);
+      const key = target.dataset.adKey;
+
+      if (!Number.isInteger(index) || !key) return;
+
+      if (target.dataset.money === "1") {
+        adRows[index][key] = parseMoney(target.value);
+      } else {
+        adRows[index][key] = target.value;
+      }
+
+      renderSummary();
+      saveAllRowsToFirestore().catch((error) => {
+        setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+      });
+    });
+
+    adTbody.addEventListener("change", (event) => {
+      const target = event.target;
+      const index = Number(target.dataset.adIndex);
+      const key = target.dataset.adKey;
+
+      if (!Number.isInteger(index) || !key) return;
+
+      adRows[index][key] = target.value;
+      render();
+      saveAllRowsToFirestore().catch((error) => {
+        setSaveStatus("Lưu Firebase thất bại: " + error.message, "error");
+      });
+    });
+
+    adTbody.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.dataset.money !== "1") return;
+      const value = parseMoney(target.value);
+      target.value = value ? String(value) : "";
+    });
+
+    adTbody.addEventListener("focusout", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.dataset.money !== "1") return;
+      const value = parseMoney(target.value);
+      target.value = value ? value.toLocaleString("vi-VN") : "";
+    });
+
+    adTbody.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-ad-delete]");
+      if (!button) return;
+
+      const index = Number(button.dataset.adDelete);
+      if (!Number.isInteger(index)) return;
+      const rowId = adRows[index]?.id;
+
+      adRows.splice(index, 1);
+      render();
+      deleteAdRowFromFirestore(rowId).then(() => {
         saveAllRowsToFirestore().catch((error) => {
           setSaveStatus("Đồng bộ Firebase thất bại: " + error.message, "error");
         });
